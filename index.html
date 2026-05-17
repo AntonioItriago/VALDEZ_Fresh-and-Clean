@@ -279,16 +279,24 @@
       contadorDiv.textContent = totalProductos;
       contadorDiv.style.display = "flex";
 
-      let totalDetal = 0;
+      let totalFinal = 0;
       let detalle = "";
 
       items.forEach(i => {
-        const subtotalDetal = parseFloat(i.item.priceDetal) * i.cantidad;
-        totalDetal += subtotalDetal;
-        detalle += `- ${i.item.name} ×${i.cantidad} (Precio Detal)\n`;
+        let precioAplicado = parseFloat(i.item.priceDetal);
+        let tipoPrecio = "Detal";
+
+        if (i.cantidad >= 20) {
+          precioAplicado = parseFloat(i.item.priceMayor);
+          tipoPrecio = "Mayor";
+        }
+
+        const subtotal = precioAplicado * i.cantidad;
+        totalFinal += subtotal;
+        detalle += `- ${i.item.name} ×${i.cantidad} (${tipoPrecio}: $${precioAplicado.toFixed(2)}) → $${subtotal.toFixed(2)}\n`;
       });
 
-      const mensaje = `¡Hola! Quiero realizar un pedido a Valdez Fresh and Clean:\n\n${detalle}\n*Total Estimado al Detal:* $${totalDetal.toFixed(2)}\n\n_(Nota: Si el pedido supera los 20L, por favor aplicar la tasa al mayor de la lista)_. ¡Gracias!`;
+      const mensaje = `¡Hola! Quiero realizar un pedido a Valdez Fresh and Clean:\n\n${detalle}\n*TOTAL NETO:* $${totalFinal.toFixed(2)}\n\nPor favor, necesito confirmar el pedido y los detalles de entrega. ¡Gracias!`;
 
       const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
       carritoBtn.href = url;
