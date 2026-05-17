@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>VALDEZ_Fresh-and-Clean</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #fff;
+      background: url('WhatsApp Image 2026-05-17 at 17.32.38.jpeg') no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 0;
+      padding-bottom: 80px; /* Espacio para que el botón flotante no tape contenido */
+    }
+    h1 {
+      text-align: center;
+      background: rgba(0,0,0,0.7);
+      padding: 15px;
+      margin: 0;
+    }
+    .category {
+      margin: 20px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 10px;
+      padding: 15px;
+    }
+    .carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+    }
+    /* Ocultar barra de desplazamiento en el carrusel */
+    .carousel::-webkit-scrollbar {
+      display: none;
+    }
+    .carousel {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    .item {
+      flex: 0 0 auto;
+      width: 220px;
+      margin: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+    .item h3 {
+      margin: 0;
+      font-size: 1.1em;
+    }
+    .item p {
+      font-size: 0.9em;
+    }
+    .select-btn {
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: #ff9800;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .cantidad {
+      margin-top: 5px;
+      font-size: 0.9em;
+    }
+
+    /* Estilos para el botón flotante */
+    #carrito-flotante {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #25D366; /* Color WhatsApp */
+      color: #fff;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      text-decoration: none;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      z-index: 1000;
+      transition: transform 0.2s;
+    }
+
+    #carrito-flotante:active {
+      transform: scale(0.9);
+    }
+
+    #contador-carrito {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #ff4444;
+      color: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 14px;
+      display: none; /* Se oculta si es 0 */
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    /* Ocultamos el botón de pedir original */
+    #pedido {
+      display: none;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>🧼 VALDEZ_Fresh-and-Clean</h1>
+  <div id="menu"></div>
+   
+  <a id="carrito-flotante" href="#" target="_blank">
+    🛒
+    <div id="contador-carrito">0</div>
+  </a>
+
+  <a id="pedido" href="#" target="_blank">📲 Pedir</a>
+
+  <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrVKUJHVqKlHPJLiBuxFN3-XbCUd6RJskLvzdRtSM9iX-U76EyGgqL4W4S-nnBJ0pkEyIN9v3oHwMz/pub?output=tsv";
+    const numeroWhatsApp = "584128380827"; // número en formato internacional
+
+    let seleccionados = {};
+
+    async function loadMenu() {
+      try {
+        const res = await fetch(sheetUrl);
+        const text = await res.text();
+        const rows = text.trim().split("\n").map(r => r.split("\t"));
+        const headers = rows[0];
+        const data = rows.slice(1);
+
+        const categorias = {};
+        data.forEach(row => {
+          const item = {};
+          headers.forEach((h,i) => item[h] = row[i]);
+
+          if(!categorias[item.category]) categorias[item.category] = [];
+          categorias[item.category].push(item);
+        });
+
+        const menuDiv = document.getElementById("menu");
+        menuDiv.innerHTML = "";
+
+        Object.keys(categorias).forEach(cat => {
+          const catDiv = document.createElement("div");
+          catDiv.className = "category";
+          catDiv.innerHTML = `<h2>${cat}</h2><div class="carousel"></div>`;
+          const carousel = catDiv.querySelector(".carousel");
+
+          categorias[cat].forEach(item => {
+            const div = document.createElement("div");
+            div.className = "item";
+            div.innerHTML = `
+              <h3>${item.name}</h3>
+              <p>${item.description}</p>
+              <p><strong>${item.price} ${item.currency}</strong></p>
+              <button class="select-btn">➕ Agregar</button>
+              <div class="cantidad">Cantidad: 0</div>
+            `;
+            const btn = div.querySelector(".select-btn");
+            const cantidadDiv = div.querySelector(".cantidad");
+
+            btn.addEventListener("click", () => {
+              if(!seleccionados[item.name]) seleccionados[item.name] = {item, cantidad:0};
+              seleccionados[item.name].cantidad++;
+              cantidadDiv.textContent = "Cantidad: " + seleccionados[item.name].cantidad;
+              actualizarPedido();
+            });
+
+            carousel.appendChild(div);
+          });
+
+          menuDiv.appendChild(catDiv);
+        });
+      } catch (err) {
+        document.getElementById("menu").innerHTML = "Error cargando menú 😢";
+        console.error(err);
+      }
+    }
+
+    function actualizarPedido() {
+      const carritoBtn = document.getElementById("carrito-flotante");
+      const contadorDiv = document.getElementById("contador-carrito");
+      const items = Object.values(seleccionados);
+       
+      // Actualizar el contador flotante
+      const totalProductos = items.reduce((a, b) => a + b.cantidad, 0);
+       
+      if(totalProductos === 0) {
+        carritoBtn.href = "#";
+        contadorDiv.style.display = "none";
+        return;
+      }
+
+      contadorDiv.textContent = totalProductos;
+      contadorDiv.style.display = "flex";
+
+      let total = 0;
+      let detalle = "";
+
+      items.forEach(i => {
+        const subtotal = parseFloat(i.item.price) * i.cantidad;
+        total += subtotal;
+        detalle += `- ${i.item.name} ×${i.cantidad} → ${subtotal.toFixed(2)} ${i.item.currency}\n`;
+      });
+
+      const mensaje = `¡Hola, Joseito! Quiero realizar un pedido:\n\n${detalle}\n*TOTAL ESTIMADO:* ${total.toFixed(2)} ${items[0].item.currency}\n\nPor favor, necesito confirmar el pedido, delivery y los detalles de pago. ¡Gracias!`;
+
+      const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
+      carritoBtn.href = url;
+    }
+
+    loadMenu();
+  </script>
+</body>
+</html>
