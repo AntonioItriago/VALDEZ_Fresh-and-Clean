@@ -69,6 +69,33 @@
       font-size: 0.9em;
     }
 
+    /* Nuevos estilos para el control de cantidad */
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .quantity-btn {
+      padding: 5px 10px;
+      background: #ff9800;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .quantity-input {
+      width: 50px;
+      text-align: center;
+      padding: 4px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+      background: #fff;
+      color: #000;
+    }
+
     /* Estilos para el botón flotante */
     #carrito-flotante {
       position: fixed;
@@ -117,7 +144,7 @@
   </style>
 </head>
 <body>
-  <h1>🧼 VALDEZ_Fresh-and-Clean</h1>
+  <h1>🧼 VALDEZ Fresh and Clean</h1>
   <div id="menu"></div>
    
   <a id="carrito-flotante" href="#" target="_blank">
@@ -139,7 +166,6 @@
         const text = await res.text();
         const rows = text.trim().split("\n").map(r => r.split("\t"));
         
-        // Mapeamos los encabezados reales de tu hoja: Producto, Precio Al Detal, Precio Al Mayor
         const headers = rows[0].map(h => h.trim());
         const data = rows.slice(1);
 
@@ -151,7 +177,6 @@
           const itemRaw = {};
           headers.forEach((h, i) => itemRaw[h] = row[i]);
 
-          // Validamos que la fila tenga datos válidos
           if (itemRaw["Producto"]) {
             const item = {
               name: itemRaw["Producto"],
@@ -182,17 +207,40 @@
               <p>${item.description}</p>
               <p><strong>Detal: $${item.priceDetal}</strong></p>
               <p><small>Mayor: $${item.priceMayor} (+20L)</small></p>
-              <button class="select-btn">➕ Agregar</button>
-              <div class="cantidad">Cantidad: 0</div>
+              <div class="quantity-control">
+                <button class="quantity-btn minus-btn">-</button>
+                <input type="number" class="quantity-input" value="0" min="0">
+                <button class="quantity-btn plus-btn">+</button>
+              </div>
             `;
-            const btn = div.querySelector(".select-btn");
-            const cantidadDiv = div.querySelector(".cantidad");
+            
+            const minusBtn = div.querySelector(".minus-btn");
+            const plusBtn = div.querySelector(".plus-btn");
+            const inputField = div.querySelector(".quantity-input");
 
-            btn.addEventListener("click", () => {
-              if(!seleccionados[item.name]) seleccionados[item.name] = {item, cantidad:0};
-              seleccionados[item.name].cantidad++;
-              cantidadDiv.textContent = "Cantidad: " + seleccionados[item.name].cantidad;
-              actualizarPedido();
+            plusBtn.addEventListener("click", () => {
+              let val = parseInt(inputField.value) || 0;
+              val++;
+              inputField.value = val;
+              actualizarItemSeleccionado(item, val);
+            });
+
+            minusBtn.addEventListener("click", () => {
+              let val = parseInt(inputField.value) || 0;
+              if (val > 0) {
+                val--;
+                inputField.value = val;
+                actualizarItemSeleccionado(item, val);
+              }
+            });
+
+            inputField.addEventListener("input", () => {
+              let val = parseInt(inputField.value);
+              if (isNaN(val) || val < 0) {
+                val = 0;
+                inputField.value = 0;
+              }
+              actualizarItemSeleccionado(item, val);
             });
 
             carousel.appendChild(div);
@@ -204,6 +252,15 @@
         document.getElementById("menu").innerHTML = "Error cargando catálogo 😢";
         console.error(err);
       }
+    }
+
+    function actualizarItemSeleccionado(item, cantidad) {
+      if (cantidad <= 0) {
+        delete seleccionados[item.name];
+      } else {
+        seleccionados[item.name] = { item, cantidad };
+      }
+      actualizarPedido();
     }
 
     function actualizarPedido() {
